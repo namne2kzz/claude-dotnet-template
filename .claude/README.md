@@ -263,6 +263,65 @@ Workflow đi qua 6 bước: architect → DB schema → backend CQRS → API con
 
 ---
 
+## MCP (Model Context Protocol) Integration
+
+MCP cho phép Claude kết nối trực tiếp với tools và data sources của bạn — query DB thực, đọc/ghi file, xem GitHub issues, v.v. — thay vì chỉ dùng code bạn paste vào.
+
+### Setup
+
+1. Copy `.claude/mcp.json.example` → `.claude/mcp.json`
+2. Điền credentials/paths thực tế vào `mcp.json`
+3. File `mcp.json` đã được `.gitignore` — không bao giờ commit credentials
+
+```bash
+cp .claude/mcp.json.example .claude/mcp.json
+# Sau đó edit mcp.json với paths và credentials thực tế
+```
+
+### MCP Servers phù hợp stack này
+
+| Server | Package | Dùng cho |
+|--------|---------|---------|
+| **Filesystem** | `@modelcontextprotocol/server-filesystem` | Claude đọc/ghi file dự án trực tiếp, không cần paste code |
+| **GitHub** | `@modelcontextprotocol/server-github` | Xem issues/PRs, tạo PR, comment — không cần rời terminal |
+| **PostgreSQL** | `@modelcontextprotocol/server-postgres` | Claude query DB thực để debug, verify migration, phân tích data |
+| **SQL Server** | `mcp-server-mssql` | Tương tự PostgreSQL nhưng cho SQL Server |
+| **Redis** | `mcp-server-redis` | Inspect cache keys, debug TTL, xem session data |
+
+### Khi nào MCP thực sự hữu ích
+
+```
+# Không có MCP — bạn phải paste schema vào chat
+"Đây là schema bảng Orders: [paste 200 dòng SQL]..."
+
+# Có MCP (postgres/mssql) — Claude tự query
+"Xem schema bảng Orders và viết migration thêm column DiscountAmount"
+→ Claude tự DESCRIBE table, hiểu structure, viết migration đúng ngay
+
+# Không có MCP — bạn phải copy/paste file
+"Đây là OrderController.cs: [paste file]..."
+
+# Có MCP (filesystem) — Claude tự đọc
+"Review toàn bộ feature Orders và chỉ ra vi phạm Clean Architecture"
+→ Claude tự traverse folder, đọc từng file, review thực sự toàn bộ
+```
+
+### Cài đặt nhanh (Node.js required)
+
+```bash
+# Filesystem + GitHub (hay dùng nhất)
+npm install -g @modelcontextprotocol/server-filesystem
+npm install -g @modelcontextprotocol/server-github
+
+# Database servers
+npm install -g @modelcontextprotocol/server-postgres
+npm install -g mcp-server-mssql
+```
+
+> Xem cấu hình chi tiết trong `.claude/mcp.json.example`
+
+---
+
 ## System Prompt Setup
 
 Copy `prompts/system/expert-fullstack.md` content into Claude's **Custom Instructions** for expert-level responses across all conversations.
