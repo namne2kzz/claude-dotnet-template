@@ -269,14 +269,22 @@ MCP cho phép Claude kết nối trực tiếp với tools và data sources củ
 
 ### Setup
 
-1. Copy `.claude/mcp.json.example` → `.claude/mcp.json`
-2. Điền credentials/paths thực tế vào `mcp.json`
-3. File `mcp.json` đã được `.gitignore` — không bao giờ commit credentials
+1. File `.claude/mcp.json` đã có sẵn với placeholder values — chỉ cần replace đúng chỗ
+2. File `mcp.json` đã được `.gitignore` — không bao giờ commit credentials
+3. Xóa bỏ server nào không dùng để tránh lỗi connect khi khởi động
+4. Restart Claude Code sau khi save `mcp.json`
 
-```bash
-cp .claude/mcp.json.example .claude/mcp.json
-# Sau đó edit mcp.json với paths và credentials thực tế
-```
+> Nếu mất file: copy lại từ `.claude/mcp.json.example` rồi điền values
+
+### Placeholders cần replace trong `mcp.json`
+
+| Placeholder | Thay bằng |
+|---|---|
+| `C:/DEV/YOUR_PROJECT_FOLDER` | Root folder project, ví dụ `C:/DEV/MyApp` |
+| `ghp_REPLACE_WITH_YOUR_GITHUB_TOKEN` | GitHub Personal Access Token — tạo tại `github.com/settings/tokens`, tick quyền `repo + issues + pull_requests` |
+| `YOUR_PG_USER / PASSWORD / DATABASE` | Credentials PostgreSQL — nên dùng readonly user |
+| `YOUR_MSSQL_USER / PASSWORD / DATABASE` | Credentials SQL Server — Azure SQL thì đổi thêm `MSSQL_ENCRYPT=true` và host `*.database.windows.net` |
+| `redis://localhost:6379` | Redis URL — có password: `redis://:PWD@host:6379`, Azure Cache: `rediss://host:6380?password=KEY` |
 
 ### MCP Servers phù hợp stack này
 
