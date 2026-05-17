@@ -1,409 +1,175 @@
-# Full-Stack .NET + Angular + DB System — Claude Instructions
+# Full-Stack .NET + Angular + DB — Claude Instructions
 
-## Role & Expertise
+## Stack
 
-You are a senior full-stack architect with deep expertise in:
-- **Backend**: .NET 10, C# 14, Clean Architecture, DDD, CQRS, MediatR
-- **Frontend**: Angular v20+ (standalone components, Signals, Control Flow)
-- **Database**: SQL Server + PostgreSQL (EF Core), Redis (StackExchange.Redis)
-- **Cloud**: Azure (AKS, App Service, Service Bus, Key Vault, Application Insights)
-- **DevOps**: Azure DevOps, GitHub Actions, Docker, Kubernetes
-
----
+| Layer | Tech |
+|-------|------|
+| Backend | .NET 10, C# 14, Clean Architecture, DDD, CQRS, MediatR, FluentValidation |
+| Frontend | Angular v20+, Signals, Standalone Components, RxJS |
+| Database | SQL Server + PostgreSQL (EF Core 10), Redis (StackExchange.Redis) |
+| Cloud | Azure: AKS, App Service, Service Bus, Key Vault, Application Insights |
+| DevOps | Azure DevOps, GitHub Actions, Docker, Kubernetes |
 
 ## Project Structure
 
 ```
-projects/
-├── backend/          # .NET Clean Architecture microservice
-│   ├── src/
-│   │   ├── Domain/           # Entities, Value Objects, Domain Events
-│   │   ├── Application/      # CQRS handlers, DTOs, Validators (MediatR)
-│   │   ├── Infrastructure/   # EF Core, Redis, external services
-│   │   └── WebApi/           # Controllers, Middleware, DI setup
-│   └── tests/
-│       ├── Unit/
-│       └── Integration/
-├── frontend/         # Angular v20+ SPA
-│   └── src/app/
-│       ├── core/             # Auth, interceptors, guards
-│       ├── shared/           # Reusable components, directives, pipes
-│       ├── features/         # Feature modules (standalone)
-│       └── layouts/          # App layouts
-└── infrastructure/   # IaC (Terraform, Bicep, Kubernetes)
+src/
+├── Domain/           # Entities, Value Objects, Domain Events, Interfaces
+├── Application/      # CQRS Handlers, DTOs, Validators (MediatR)
+├── Infrastructure/   # EF Core, Redis, external HTTP clients
+└── WebApi/           # Controllers, Middleware, DI setup
+tests/
+├── Unit/             # xUnit + Moq + FluentAssertions
+└── Integration/      # Testcontainers — real DB
+frontend/src/app/
+├── core/             # Auth, interceptors, guards
+├── shared/           # Reusable components, pipes, directives
+├── features/         # Feature folders (standalone)
+└── layouts/
 ```
 
 ---
 
-## Backend Patterns
+## Architecture Rules
 
-### Clean Architecture Layers
-| Layer | Responsibility | Allowed Dependencies |
-|-------|---------------|---------------------|
-| Domain | Entities, VOs, Events, Interfaces | None |
-| Application | Use Cases, Commands, Queries, DTOs | Domain only |
-| Infrastructure | EF Core, Redis, HTTP clients | Application, Domain |
-| WebApi | Controllers, Middleware | Application only |
+### Clean Architecture — Layer Dependencies
+| Layer | May depend on |
+|-------|--------------|
+| Domain | Nothing |
+| Application | Domain only |
+| Infrastructure | Application + Domain |
+| WebApi | Application only |
 
-### DDD Principles
-- Aggregate roots own their consistency boundary
-- Domain events for inter-aggregate communication (`IDomainEvent`)
-- Specifications pattern for complex business queries
-- Value objects for type safety and immutability
-- Ubiquitous language reflected in code naming
+Domain logic never in Infrastructure or WebApi. Violations are blocking.
 
-### CQRS with MediatR
-```csharp
-// Command: mutates state
-public record CreateOrderCommand(Guid CustomerId, List<OrderItemDto> Items) : IRequest<Guid>;
+### CQRS
+- Commands mutate state, return `Result<T>` — never return entity
+- Queries are read-only — `AsNoTracking()` always, project with `Select()`, never load full entity
+- One handler = one responsibility (SRP)
 
-// Query: returns data, no side effects
-public record GetOrderByIdQuery(Guid OrderId) : IRequest<OrderDto>;
-
-// Handler follows SRP
-public class CreateOrderCommandHandler(IOrderRepository repo, IUnitOfWork uow)
-    : IRequestHandler<CreateOrderCommand, Guid>
-```
-
-### EF Core Patterns
-- `AsNoTracking()` on all read queries
-- Batch insert/update with `ExecuteUpdateAsync` / `ExecuteDeleteAsync`
-- Projection with `Select()` — never load full entity for reads
-- Owned entities for Value Objects
-- `IEntityTypeConfiguration<T>` for fluent mapping (no DataAnnotations)
+### DDD
+- Aggregate roots own their consistency boundary — no direct cross-aggregate references
+- Domain events (`IDomainEvent`) for inter-aggregate communication
+- Value objects are immutable — no public setters
+- Ubiquitous language in all naming
 
 ---
 
-## Frontend Patterns (Angular v20+)
+## Angular Rules
 
-### Standalone Components (default)
-```typescript
-@Component({
-  selector: 'app-example',
-  standalone: true,
-  imports: [CommonModule, RouterLink],
-  templateUrl: './example.component.html',
-})
-export class ExampleComponent { }
-```
-
-### Signals — Reactive State
-```typescript
-// In component or service
-count = signal(0);
-doubled = computed(() => this.count() * 2);
-
-// In template
-{{ count() }}   // call signal as function
-@if (isLoading()) { <app-spinner /> }
-@for (item of items(); track item.id) { ... }
-```
-
-### inject() over Constructor Injection
-```typescript
-// Preferred
-private readonly userService = inject(UserService);
-private readonly router = inject(Router);
-
-// Avoid in modern Angular
-constructor(private userService: UserService) {}
-```
-
-### HTTP with Angular HttpClient
-```typescript
-private readonly http = inject(HttpClient);
-
-getOrders(): Observable<Order[]> {
-  return this.http.get<Order[]>('/api/orders');
-}
-```
-
-### Control Flow Syntax (Angular 17+)
-```html
-@if (user()) {
-  <app-user-profile [user]="user()!" />
-} @else {
-  <app-login />
-}
-
-@for (item of cart(); track item.id) {
-  <app-cart-item [item]="item" />
-} @empty {
-  <p>Cart is empty</p>
-}
-
-@defer (on viewport) {
-  <app-heavy-component />
-} @placeholder {
-  <app-skeleton />
-}
-```
+- `standalone: true` on every component — no NgModules
+- Signals for reactive state — no BehaviorSubject in components
+- `@if` / `@for` / `@defer` — never `*ngIf` / `*ngFor`
+- `inject()` for DI — never constructor injection
+- `track` expression required in every `@for`
+- HTTP calls in services only — never directly in components
+- `OnPush` change detection on all display/presentational components
+- `toSignal()` or `takeUntilDestroyed(destroyRef)` on every `subscribe()` — no leaks
 
 ---
 
-## Database Patterns
+## Non-negotiable Engineering Rules
 
-### SQL Server (EF Core)
-- Use `IDbContextFactory<T>` for long-running background services
-- Index strategy: composite indexes matching WHERE + ORDER BY columns
-- Always use parameterized queries (EF Core does this automatically)
-- Connection string from Azure Key Vault via Managed Identity
+### Memory Management
+**.NET**
+- `using` / `await using` for every `IDisposable` / `IAsyncDisposable`
+- `DbContext` must be Scoped — never Singleton; use `IDbContextFactory<T>` in background services
+- `HttpClient` via `IHttpClientFactory` — never `new HttpClient()`
 
-### PostgreSQL (EF Core)
-- Use `UseNpgsql()` with `EnableRetryOnFailure()`
-- `jsonb` columns via `HasColumnType("jsonb")` for semi-structured data
-- Npgsql bulk operations for batch inserts
-
-### Redis (StackExchange.Redis)
-```csharp
-// Cache-aside pattern
-public async Task<T?> GetOrSetAsync<T>(string key, Func<Task<T>> factory, TimeSpan ttl)
-{
-    var cached = await _cache.GetStringAsync(key);
-    if (cached != null) return JsonSerializer.Deserialize<T>(cached);
-    var value = await factory();
-    await _cache.SetStringAsync(key, JsonSerializer.Serialize(value),
-        new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl });
-    return value;
-}
-```
-
----
-
-## Security Standards
-
-- JWT Bearer auth with Azure AD / Entra ID
-- Claims-based authorization (`[Authorize(Policy = "RequireAdmin")]`)
-- Input validation via FluentValidation (Application layer)
-- OWASP Top 10 compliance on all endpoints
-- Secrets in Azure Key Vault — never in appsettings.json
-- Angular: HTTP interceptor adds `Authorization: Bearer` header
-- Angular: No sensitive data in `localStorage`; use `sessionStorage` or in-memory
-
----
-
-## Performance Standards
-
-- All .NET async paths use `async/await` — no `.Result` or `.Wait()`
-- `CancellationToken` passed through all layers
-- Redis TTL: reference data 1h, user-specific 5min, ephemeral 30s
-- EF Core: avoid `Include()` chains > 3 levels; use projections
-- Angular: lazy-load feature routes; defer heavy components with `@defer`
-- Angular: `OnPush` change detection on pure display components
-
----
-
-## Code Review Checklist
-
-### Backend
-- [ ] Correct Clean Architecture layer dependencies
-- [ ] Domain logic stays in Domain/Application, not Infrastructure
-- [ ] Async/await correct (no deadlocks, CancellationToken passed)
-- [ ] EF Core: AsNoTracking on reads, projections used
-- [ ] FluentValidation on all commands/queries
-- [ ] Logging at appropriate levels (no sensitive data logged)
-- [ ] Unit tests: xUnit + Moq + FluentAssertions; covers happy path, not-found, validation, exception
-- [ ] Test data via Bogus Faker / Builder pattern — no hardcoded magic strings
-- [ ] `Verify()` calls confirm side effects (repo.Add, uow.Commit) were called/not called
-
-### Frontend (Angular v20+)
-- [ ] Standalone component with correct imports
-- [ ] Signals used for reactive state (not BehaviorSubject overuse)
-- [ ] `@if`/`@for`/`@defer` used (not `*ngIf`/`*ngFor`)
-- [ ] `inject()` used (not constructor injection)
-- [ ] `track` expression in `@for`
-- [ ] `OnPush` on display components
-- [ ] HTTP calls in services, not components
-- [ ] Unit tests: Jasmine + TestBed; services mocked via `jasmine.createSpyObj` with signal props
-- [ ] `fixture.detectChanges()` after every signal update in tests
-- [ ] `httpMock.verify()` in `afterEach` for HTTP service tests
-
-### Database
-- [ ] Indexes match query patterns
-- [ ] Migrations are reversible (Down() method)
-- [ ] No raw SQL without parameterization
-- [ ] Redis keys follow naming convention `{service}:{entity}:{id}`
-
----
-
----
-
-## Engineering Principles (Non-negotiable)
-
-### 1. Memory Management
-
-**Angular / TypeScript**
-- Every `subscribe()` must be cleaned up — use `takeUntilDestroyed(destroyRef)` or convert to `toSignal()`
-- `effect()` created outside injection context must be manually destroyed
+**Angular**
+- Prefer `toSignal()` — auto-cleanup, no manual unsubscribe needed
+- Every manual `subscribe()` must use `takeUntilDestroyed(destroyRef)`
 - `Subject` / `BehaviorSubject` must call `.complete()` in `ngOnDestroy`
-- Avoid storing large object references in long-lived services/stores — clear on logout/reset
-- Use `@defer` to avoid loading heavy components into memory until needed
+- Clear large object references from long-lived services on logout/reset
 
-```typescript
-// ✅ Auto-cleanup — preferred
-readonly data = toSignal(this.http.get<Data[]>('/api/data'), { initialValue: [] });
+### Async (.NET)
+- `async/await` everywhere — never `.Result`, `.Wait()`, or `.GetAwaiter().GetResult()`
+- `CancellationToken ct = default` on every async method, passed through all layers
+- No `Task.Run()` in controllers or handlers
 
-// ✅ takeUntilDestroyed when you must subscribe manually
-private readonly destroyRef = inject(DestroyRef);
-this.someStream$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(...);
+### Security
+- Secrets in Azure Key Vault — never in `appsettings.json` or source code
+- `[Authorize]` on every non-public endpoint
+- FluentValidation on every Command and Query (Application layer)
+- Angular: no tokens or sensitive data in `localStorage` — use `sessionStorage` or in-memory
 
-// ❌ LEAK — no cleanup
-this.someStream$.subscribe(...);
-```
+### DI & SOLID
+- Depend on abstractions (`IRepository<T>`, `ICacheService`) — never concrete types in business code
+- Never `new ServiceImpl()` in business logic — always inject
+- Lifetimes: Singleton for stateless infra, Scoped for DbContext, Transient for lightweight
+- Strategy pattern for branching on type — no if/else chains over implementation
 
-**.NET / C#**
-- `IDisposable` types must always be wrapped in `using` or registered with DI lifetime that matches usage
-- Avoid `static` fields holding object references (memory leak in long-running services)
-- `DbContext` must be scoped — never singleton; use `IDbContextFactory<T>` in background services
-- `HttpClient` must be injected via `IHttpClientFactory` — never `new HttpClient()`
-- `CancellationToken` on all async paths — allow resources to be released when requests cancel
-- `IAsyncDisposable` for async cleanup; `await using` in handlers
-
-```csharp
-// ✅ Proper disposal
-await using var db = await _factory.CreateDbContextAsync(ct);
-
-// ✅ HttpClient via factory — connection pooling, no socket exhaustion
-services.AddHttpClient<IPaymentClient, PaymentClient>();
-
-// ❌ LEAK — new HttpClient() bypasses pooling
-var client = new HttpClient();
-```
+### EF Core
+- `AsNoTracking()` on all read queries
+- Project with `Select()` — never load full entity for reads
+- `IEntityTypeConfiguration<T>` for mapping — no DataAnnotations on domain entities
+- Redis TTL: reference data 1h, user-specific 5min, ephemeral 30s
 
 ---
 
-### 2. Generic & Extensible Code
+## Code Documentation (Strict — No Exceptions)
 
-Write logic so it can be reused, extended, or modified with minimal blast radius:
-- **Extract to generic base**: repeated patterns → base class, generic service, or utility function
-- **Depend on abstractions**: `IRepository<T>`, `ICacheService`, `IEmailSender` — not concrete types
-- **Open/Closed**: classes open for extension (via interfaces, strategy pattern), closed for modification
-- **Avoid hardcoding**: business rules as configurable constants or strategy objects, not if/else chains
-- **Small, composable pieces**: one method does one thing; compose in higher-level callers
+Every public method must have a doc comment.
 
 ```csharp
-// ✅ Generic repository — extensible per entity without duplication
-public interface IRepository<T> where T : Entity
-{
-    Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default);
-    Task<IReadOnlyList<T>> GetAllAsync(CancellationToken ct = default);
-    void Add(T entity);
-    void Remove(T entity);
-}
-
-// ✅ Strategy pattern — add new payment providers without touching existing code
-public interface IPaymentGateway { Task<PaymentResult> ChargeAsync(PaymentRequest req); }
-public class StripeGateway : IPaymentGateway { ... }
-public class PayPalGateway : IPaymentGateway { ... }
-```
-
-```typescript
-// ✅ Generic base service — reuse across features
-abstract class BaseEntityService<T extends { id: string }> {
-  protected readonly items = signal<T[]>([]);
-  protected readonly isLoading = signal(false);
-  readonly count = computed(() => this.items().length);
-
-  protected setItems(data: T[]): void { this.items.set(data); }
-  findById(id: string): T | undefined { return this.items().find(i => i.id === id); }
-}
-```
-
----
-
-### 3. OOP, Design Patterns, DI & SOLID
-
-Apply these on every design decision:
-
-**SOLID:**
-| Principle | Practice |
-|-----------|----------|
-| **S** — Single Responsibility | One class = one reason to change; handlers do one thing |
-| **O** — Open/Closed | Extend via interface + new class, don't modify existing |
-| **L** — Liskov | Subtypes must honor base contracts (no `NotImplementedException`) |
-| **I** — Interface Segregation | Small focused interfaces (`IReader<T>`, `IWriter<T>`) not fat `IRepository` with 20 methods |
-| **D** — Dependency Inversion | Depend on `IService` not `ServiceImpl`; inject via constructor/`inject()` |
-
-**Design Patterns to apply by context:**
-| Scenario | Pattern |
-|----------|---------|
-| Multiple algorithms (payment, export, notification) | **Strategy** |
-| Add behavior without modifying class (caching, logging, auth) | **Decorator** |
-| Build complex objects step-by-step | **Builder** |
-| Single shared instance per scope | **Singleton (via DI)** |
-| Observe state changes across components | **Observer (Signals/Events)** |
-| Abstract data access | **Repository** |
-| Encapsulate complex queries | **Specification** |
-| Complex multi-step processes | **Saga / Pipeline** |
-
-**DI Rules:**
-- Register all services in DI container — never `new ServiceImpl()` in business code
-- Lifetime: Singleton for stateless infra, Scoped for per-request (DbContext), Transient for lightweight
-- Angular: `providedIn: 'root'` for app-wide services; feature-level for scoped state
-- .NET: `services.AddScoped<IRepo, RepoImpl>()` — test by swapping implementation
-
----
-
-## Code Documentation (Strict)
-
-Every generated function/method must have a documentation comment. No exceptions.
-
-### C# — XML Doc Comments
-```csharp
-/// <summary>
-/// Brief overview of what this method does (one line preferred).
-/// </summary>
-/// <param name="orderId">The unique identifier of the order to retrieve.</param>
-/// <param name="ct">Cancellation token for the async operation.</param>
-/// <returns>The order DTO if found; null otherwise.</returns>
+/// <summary>Retrieves order by ID, or null if not found.</summary>
+/// <param name="orderId">The order unique identifier.</param>
+/// <param name="ct">Cancellation token.</param>
+/// <returns>OrderDto if found; null otherwise.</returns>
 public async Task<OrderDto?> GetByIdAsync(Guid orderId, CancellationToken ct = default)
 ```
 
-### TypeScript/Angular — JSDoc
 ```typescript
 /**
- * Brief overview of what this method does.
- * @param filters The filter criteria to apply to the product list.
- * @returns Observable emitting the paginated product result.
+ * Loads paginated products matching the given filters.
+ * @param filters Filter criteria to apply.
+ * @returns Observable emitting the paginated result.
  */
 loadProducts(filters: ProductFilters): Observable<PagedResult<Product>>
 ```
 
-Rules:
-- `<summary>` / first JSDoc line: what it does (not "this method...")
-- `<param>` / `@param`: every parameter including `CancellationToken`
-- `<returns>` / `@returns`: what is returned, including null/undefined cases
-- Skip `@returns` only for `void` / `Promise<void>` methods
-- Skip for simple property getters with self-explanatory names
+Rules: one-line `<summary>`, every `<param>` including `CancellationToken`, `<returns>` with null cases. Skip only for `void`/`Promise<void>` and self-explanatory property getters.
 
 ---
 
 ## File Conventions (Strict)
 
-### Angular — Always Separate Files
-Every component = 4 files, never inline:
+### Angular — 4 files per component, always
 ```
-feature.component.ts      ← class only, templateUrl + styleUrl
-feature.component.html    ← template (@if/@for/@defer)
-feature.component.scss    ← styles
-feature.component.spec.ts ← Jasmine tests
+feature.component.ts        ← class only (templateUrl + styleUrl refs)
+feature.component.html      ← template
+feature.component.scss      ← styles
+feature.component.spec.ts   ← Jasmine tests
 ```
-- **Never** use `template: \`...\`` inline in component decorator
-- Interfaces/types always in `models/*.model.ts` — **never** inside service/store/component files
+Never `template: \`...\`` inline. Interfaces/types always in `models/*.model.ts` — never inside service or component files.
 
-### .NET — Separate Request/Response
-- Request records: `WebApi/{Feature}/Requests/` folder
-- Response DTOs: `Application/{Feature}/DTOs/` folder
-- **Never** define records/classes inside a Controller file
+### .NET — Separate request/response
+- Request records → `WebApi/{Feature}/Requests/`
+- Response DTOs → `Application/{Feature}/DTOs/`
+- Never define records/DTOs inside a Controller file
 
 ---
 
-## Prompt Patterns
+## Review Checklist
 
-Always provide:
-1. **Context**: Domain, layer, technology version
-2. **Current Code**: Paste relevant snippet
-3. **Goal**: Performance, security, architecture, test coverage
-4. **Constraints**: Scale, deadlines, team skills
+**Backend:** layer deps correct · domain logic not in infra/api · async+CT correct · AsNoTracking on reads · FluentValidation on all commands · no sensitive data logged · unit tests cover happy/notfound/validation/exception · Verify() on side effects
 
-Reference templates in `prompts/tasks/` for specific scenarios.
+**Angular:** standalone + imports correct · signals not BehaviorSubject · @if/@for/@defer · inject() · track in @for · OnPush on display components · no subscribe leaks · detectChanges() after signal updates in tests · httpMock.verify() in afterEach
+
+**Database:** indexes match query patterns · migrations have Down() · no raw SQL without params · Redis keys: `{service}:{entity}:{id}`
+
+---
+
+## Skills Reference
+
+Detailed patterns and code templates in `.claude/skills/`:
+
+| Area | Skills |
+|------|--------|
+| Backend | `generate-dotnet` · `clean-architecture` · `ddd-cqrs` · `unit-testing` · `testcontainers` · `aspire-orchestration` · `opentelemetry` · `resilience-patterns` · `snapshot-testing` · `api-versioning` |
+| Frontend | `generate-angular` · `angular-signals` · `angular-rxjs` · `unit-testing-angular` |
+| Database | `efcore-sqlserver` · `efcore-postgresql` · `redis-cache` · `migrations` · `query-optimization` |
+
+Agents: `dotnet-coder` · `angular-coder` · `reviewer` · `architect` · `db-optimizer` · `security-auditor` · `build-error-resolver`
+
+Workflows: `build-feature` · `fix-bug` · `code-review` · `deploy-to-azure` · `tdd` · `security-scan` · `health-check`

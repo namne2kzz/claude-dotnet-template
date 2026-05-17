@@ -79,6 +79,12 @@ claude-dotnet-template/
 | `/clean-architecture` | `.claude/skills/backend/clean-architecture.md` | Review/fix layer violations |
 | `/ddd-cqrs` | `.claude/skills/backend/ddd-cqrs.md` | Design aggregates, events, sagas |
 | `/unit-testing` | `.claude/skills/backend/unit-testing.md` | xUnit + Moq + FluentAssertions + Bogus patterns |
+| `/testcontainers` | `.claude/skills/backend/testcontainers.md` | Integration tests với real DB/Redis containers |
+| `/aspire-orchestration` | `.claude/skills/backend/aspire-orchestration.md` | .NET Aspire local orchestration, ServiceDefaults |
+| `/opentelemetry` | `.claude/skills/backend/opentelemetry.md` | OTel traces, metrics, Serilog structured logs |
+| `/resilience-patterns` | `.claude/skills/backend/resilience-patterns.md` | Polly v8 retry, circuit breaker, hedging |
+| `/snapshot-testing` | `.claude/skills/backend/snapshot-testing.md` | Verify library — DTO/response snapshot tests |
+| `/api-versioning` | `.claude/skills/backend/api-versioning.md` | Asp.Versioning — URL/header versioning, deprecation |
 
 ### Frontend (Angular v20+)
 | Skill | File | Use For |
@@ -105,6 +111,8 @@ claude-dotnet-template/
 | `[reviewer]` | Full-stack code review |
 | `[architect]` | Feature/system design |
 | `[db-optimizer]` | DB performance diagnosis |
+| `[security-auditor]` | OWASP audit, secrets scan, auth/authz review |
+| `[build-error-resolver]` | Tự động fix .NET + Angular build errors iteratively |
 
 ### Workflows
 | Workflow | Use For |
@@ -113,6 +121,9 @@ claude-dotnet-template/
 | `/workflow fix-bug` | Systematic bug investigation |
 | `/workflow code-review` | PR/code review |
 | `/workflow deploy-to-azure` | Deployment checklist + pipeline |
+| `/workflow tdd` | Red-Green-Refactor loop — test trước, implement sau |
+| `/workflow security-scan` | OWASP + dependency + secrets scan trước khi merge |
+| `/workflow health-check` | Build + test + format + migration gate trước commit |
 
 ---
 
@@ -285,6 +296,9 @@ MCP cho phép Claude kết nối trực tiếp với tools và data sources củ
 | `YOUR_PG_USER / PASSWORD / DATABASE` | Credentials PostgreSQL — nên dùng readonly user |
 | `YOUR_MSSQL_USER / PASSWORD / DATABASE` | Credentials SQL Server — Azure SQL thì đổi thêm `MSSQL_ENCRYPT=true` và host `*.database.windows.net` |
 | `redis://localhost:6379` | Redis URL — có password: `redis://:PWD@host:6379`, Azure Cache: `rediss://host:6380?password=KEY` |
+| `playwright` | Không cần config — chỉ cần `npx playwright install` một lần |
+| `YOUR_ORG_NAME` + `AZURE_DEVOPS_PAT` | Azure DevOps org name + PAT từ `dev.azure.com` → User Settings → Personal Access Tokens |
+| `YourApp.sln` path (roslyn) | Đường dẫn đến `.sln` file thực tế của project |
 
 ### MCP Servers phù hợp stack này
 
