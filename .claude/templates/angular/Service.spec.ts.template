@@ -1,0 +1,110 @@
+import { TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { {{ServiceName}} } from './{{service-file}}.service';
+import type { {{ModelName}} } from '../models/{{model-file}}.model';
+import { build{{ModelName}} } from '../../tests/builders/{{model-file}}.builder';
+
+describe('{{ServiceName}}', () => {
+  let service: {{ServiceName}};
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [{{ServiceName}}],
+    });
+    service = TestBed.inject({{ServiceName}});
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => httpMock.verify());   // fail if any HTTP call was not asserted
+
+  // ── loadAll ──────────────────────────────────────────────────────────────
+
+  describe('loadAll', () => {
+    it('calls GET /api/{{route}} and updates items signal', async () => {
+      const items: {{ModelName}}[] = [build{{ModelName}}(), build{{ModelName}}()];
+
+      const promise = service.loadAll();
+
+      const req = httpMock.expectOne('/api/{{route}}');
+      expect(req.request.method).toBe('GET');
+      req.flush(items);
+
+      await promise;
+
+      expect(service.items()).toEqual(items);
+      expect(service.isLoading()).toBeFalse();
+      expect(service.error()).toBeNull();
+    });
+
+    it('sets isLoading true during request, false after', async () => {
+      const loadingStates: boolean[] = [];
+
+      // Capture isLoading transitions
+      const originalSet = service.isLoading;
+      const promise = service.loadAll();
+      loadingStates.push(service.isLoading());   // true during fetch
+
+      const req = httpMock.expectOne('/api/{{route}}');
+      req.flush([]);
+      await promise;
+
+      loadingStates.push(service.isLoading());   // false after
+      expect(loadingStates).toEqual([true, false]);
+    });
+
+    it('sets error signal on HTTP 500', async () => {
+      const promise = service.loadAll();
+
+      const req = httpMock.expectOne('/api/{{route}}');
+      req.flush('Server Error', { status: 500, statusText: 'Internal Server Error' });
+
+      await promise;
+
+      expect(service.error()).toBeTruthy();
+      expect(service.items()).toEqual([]);
+      expect(service.isLoading()).toBeFalse();
+    });
+  });
+
+  // ── create ───────────────────────────────────────────────────────────────
+
+  describe('create', () => {
+    it('calls POST /api/{{route}} with correct body and updates items', async () => {
+      const newItem = build{{ModelName}}();
+      const dto = { /* TODO: map from newItem */ };
+
+      const promise = service.create(dto);
+
+      const req = httpMock.expectOne('/api/{{route}}');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(dto);
+      req.flush(newItem);
+
+      await promise;
+
+      expect(service.items()).toContain(newItem);
+    });
+  });
+
+  // ── delete ───────────────────────────────────────────────────────────────
+
+  describe('delete', () => {
+    it('calls DELETE /api/{{route}}/:id and removes from items', async () => {
+      const item = build{{ModelName}}({ id: 'del-42' });
+      // Pre-seed service state
+      // (service as any)._items.set([item]);
+
+      const promise = service.delete(item.id);
+
+      const req = httpMock.expectOne(`/api/{{route}}/${item.id}`);
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+
+      await promise;
+
+      expect(service.items().find(i => i.id === item.id)).toBeUndefined();
+    });
+  });
+});

@@ -1,0 +1,74 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.db
+*.db-shm
+*.db-wal
+*.log
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# Test results
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Publish output
+publish/
+.publish/
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+.nx/
+*.js.map
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.env
+.env.local
+
+# IDE
+.idea/
+*.swp
+*.swo
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker
+.docker/
+
+# Terraform / Infra
+*.tfstate
+*.tfstate.backup
+.terraform/
+*.tfvars
+!*.tfvars.example
+
+# Azure
+*.pubxml
+*.publishsettings
+
+# Claude
+.claude/mcp.json

@@ -1,0 +1,81 @@
+import { Injectable, inject, signal, computed } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+
+export interface {{EntityName}} {
+  id: string;
+  // TODO: Add fields
+}
+
+export interface Create{{EntityName}}Dto {
+  // TODO: Add fields
+}
+
+/**
+ * {{ServiceDescription}}
+ */
+@Injectable({ providedIn: 'root' })
+export class {{EntityName}}Service {
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = '/api/{{resource-name}}';
+
+  // --- State (private writable) ---
+  private readonly _items = signal<{{EntityName}}[]>([]);
+  private readonly _isLoading = signal(false);
+  private readonly _error = signal<string | null>(null);
+
+  // --- Public state (read-only) ---
+  readonly items = this._items.asReadonly();
+  readonly isLoading = this._isLoading.asReadonly();
+  readonly error = this._error.asReadonly();
+
+  // --- Derived ---
+  readonly count = computed(() => this._items().length);
+  readonly hasItems = computed(() => this._items().length > 0);
+
+  // --- Actions ---
+
+  async loadAll(): Promise<void> {
+    this._isLoading.set(true);
+    this._error.set(null);
+    try {
+      const data = await firstValueFrom(
+        this.http.get<{{EntityName}}[]>(this.baseUrl)
+      );
+      this._items.set(data);
+    } catch (err) {
+      this._error.set('Failed to load {{resource-name}}');
+      console.error(err);
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  async create(dto: Create{{EntityName}}Dto): Promise<{{EntityName}} | null> {
+    this._isLoading.set(true);
+    this._error.set(null);
+    try {
+      const created = await firstValueFrom(
+        this.http.post<{{EntityName}}>(this.baseUrl, dto)
+      );
+      this._items.update(items => [...items, created]);
+      return created;
+    } catch (err) {
+      this._error.set('Failed to create {{entity-name}}');
+      return null;
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      await firstValueFrom(this.http.delete(`${this.baseUrl}/${id}`));
+      this._items.update(items => items.filter(i => i.id !== id));
+      return true;
+    } catch {
+      this._error.set('Failed to delete {{entity-name}}');
+      return false;
+    }
+  }
+}

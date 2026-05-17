@@ -1,0 +1,58 @@
+import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { catchError, throwError } from 'rxjs';
+import { Router } from '@angular/router';
+// import { AuthService } from '../auth/auth.service';
+
+/**
+ * Auth interceptor: adds Bearer token to all API requests.
+ * Handles 401 (redirect to login) and 403 (show forbidden).
+ *
+ * Register in app.config.ts:
+ *   provideHttpClient(withInterceptors([authInterceptor]))
+ */
+export const authInterceptor: HttpInterceptorFn = (
+  req: HttpRequest<unknown>,
+  next: HttpHandlerFn
+) => {
+  const router = inject(Router);
+  // const auth = inject(AuthService);
+
+  // Skip interceptor for non-API requests
+  if (!req.url.startsWith('/api')) {
+    return next(req);
+  }
+
+  // TODO: Get token from AuthService
+  // const token = auth.getAccessToken();
+  const token: string | null = null;  // replace with auth.getAccessToken()
+
+  const authReq = token
+    ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+    : req;
+
+  return next(authReq).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if (error.status === 401) {
+        // Token expired or invalid — redirect to login
+        router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+      } else if (error.status === 403) {
+        // Forbidden — user doesn't have permission
+        router.navigate(['/forbidden']);
+      }
+      return throwError(() => error);
+    })
+  );
+};
+
+/**
+ * Error interceptor: catches all HTTP errors and provides consistent logging.
+ */
+export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  return next(req).pipe(
+    catchError((error: HttpErrorResponse) => {
+      console.error(`HTTP Error: ${error.status} ${req.method} ${req.url}`, error);
+      return throwError(() => error);
+    })
+  );
+};

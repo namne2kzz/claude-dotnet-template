@@ -1,0 +1,39 @@
+import { ChangeDetectionStrategy, Component, inject, input, output, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+// TODO: Import {{ServiceName}}Service
+
+/**
+ * {{ComponentDescription}}
+ */
+@Component({
+  selector: 'app-{{selector}}',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule],
+  templateUrl: './{{selector}}.component.html',
+  styleUrl: './{{selector}}.component.scss'
+})
+export class {{ComponentName}}Component {
+  // --- Inputs (signal-based) ---
+  // exampleInput = input.required<{{InputType}}>();
+  // optionalInput = input(defaultValue);
+
+  // --- Outputs ---
+  // actionClicked = output<{{OutputType}}>();
+
+  // --- Services ---
+  // private readonly service = inject({{ServiceName}}Service);
+
+  // --- State ---
+  protected readonly isLoading = signal(false);
+  protected readonly error = signal<string | null>(null);
+  // protected readonly data = signal<{{DataType}} | null>(null);
+
+  // --- Derived ---
+  // protected readonly derivedValue = computed(() => this.data()?.property ?? defaultValue);
+
+  // --- Methods ---
+  protected onAction(): void {
+    // this.actionClicked.emit(value);
+  }
+}

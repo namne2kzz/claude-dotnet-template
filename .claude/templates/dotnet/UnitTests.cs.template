@@ -1,0 +1,105 @@
+using FluentAssertions;
+using Moq;
+using {{Namespace}}.Application.{{Feature}}.Commands;
+using {{Namespace}}.Domain.Entities;
+using {{Namespace}}.Domain.Interfaces;
+using Xunit;
+
+namespace {{Namespace}}.Unit.{{Feature}};
+
+public class {{CommandName}}CommandHandlerTests
+{
+    private readonly Mock<I{{Entity}}Repository> _repositoryMock = new();
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
+    private readonly {{CommandName}}CommandHandler _sut;
+
+    public {{CommandName}}CommandHandlerTests()
+    {
+        _sut = new {{CommandName}}CommandHandler(
+            _repositoryMock.Object,
+            _unitOfWorkMock.Object
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ValidCommand_ReturnsSuccess()
+    {
+        // Arrange
+        var entity = CreateValid{{Entity}}();
+        var command = new {{CommandName}}Command(entity.Id, "Updated Name");
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(entity.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+
+        _unitOfWorkMock
+            .Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _sut.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(entity.Id);
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_EntityNotFound_ReturnsFailure()
+    {
+        // Arrange
+        var command = new {{CommandName}}Command(Guid.NewGuid(), "Name");
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(({{Entity}}?)null);
+
+        // Act
+        var result = await _sut.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("not found");
+        _unitOfWorkMock.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData(null)]
+    public async Task Handle_InvalidName_ValidationFails(string? invalidName)
+    {
+        // Arrange
+        var validator = new {{CommandName}}CommandValidator();
+        var command = new {{CommandName}}Command(Guid.NewGuid(), invalidName!);
+
+        // Act
+        var validationResult = await validator.ValidateAsync(command);
+
+        // Assert
+        validationResult.IsValid.Should().BeFalse();
+        validationResult.Errors.Should().Contain(e => e.PropertyName == nameof(command.Name));
+    }
+
+    [Fact]
+    public async Task Handle_RepositoryThrows_PropagatesException()
+    {
+        // Arrange
+        var command = new {{CommandName}}Command(Guid.NewGuid(), "Valid Name");
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("DB error"));
+
+        // Act
+        var act = () => _sut.Handle(command, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("DB error");
+    }
+
+    // --- Helpers ---
+    private static {{Entity}} CreateValid{{Entity}}() =>
+        {{Entity}}.Create("Test {{Entity}}" /* TODO: provide required params */);
+}

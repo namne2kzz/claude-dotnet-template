@@ -1,0 +1,36 @@
+// tests/builders/{{model-file}}.builder.ts
+// Builder for {{ModelName}} — generates test data with sensible defaults.
+// All overrides are shallow-merged via spread.
+
+import type { {{ModelName}} } from '../../src/app/models/{{model-file}}.model';
+
+let _counter = 0;
+
+/**
+ * Build a single {{ModelName}} with default values.
+ * Pass overrides to set specific fields for a test scenario.
+ * @param overrides Partial fields to override on the default object.
+ * @returns A complete {{ModelName}} object.
+ */
+export function build{{ModelName}}(overrides: Partial<{{ModelName}}> = {}): {{ModelName}} {
+  _counter++;
+  return {
+    id: `{{model-file}}-${_counter}`,
+    // TODO: add all required fields with default values
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+/**
+ * Build a list of {{ModelName}} objects.
+ * @param count Number of items to generate.
+ * @param overrides Overrides applied to every item.
+ * @returns Array of {{ModelName}} objects.
+ */
+export function build{{ModelName}}List(
+  count: number,
+  overrides: Partial<{{ModelName}}> = {}
+): {{ModelName}}[] {
+  return Array.from({ length: count }, () => build{{ModelName}}(overrides));
+}

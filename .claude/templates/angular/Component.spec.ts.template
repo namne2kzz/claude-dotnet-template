@@ -1,0 +1,99 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { WritableSignal, signal } from '@angular/core';
+import { Router } from '@angular/router';
+import { {{ComponentName}}Component } from './{{selector}}.component';
+import { {{ServiceName}} } from '../services/{{service-file}}.service';
+import type { {{ModelName}} } from '../models/{{model-file}}.model';
+import { build{{ModelName}} } from '../../tests/builders/{{model-file}}.builder';
+
+describe('{{ComponentName}}Component', () => {
+  let fixture: ComponentFixture<{{ComponentName}}Component>;
+  let component: {{ComponentName}}Component;
+  let serviceSpy: jasmine.SpyObj<{{ServiceName}}>;
+  let routerSpy: jasmine.SpyObj<Router>;
+
+  beforeEach(async () => {
+    // Spy with signal property mocks (3rd arg = property descriptors)
+    serviceSpy = jasmine.createSpyObj('{{ServiceName}}', ['loadAll', 'reset'], {
+      items: signal<{{ModelName}}[]>([]),
+      isLoading: signal(false),
+      error: signal<string | null>(null),
+    });
+
+    routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    routerSpy.navigate.and.resolveTo(true);
+
+    await TestBed.configureTestingModule({
+      imports: [{{ComponentName}}Component],   // standalone → imports, not declarations
+      providers: [
+        { provide: {{ServiceName}}, useValue: serviceSpy },
+        { provide: Router, useValue: routerSpy },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent({{ComponentName}}Component);
+    component = fixture.componentInstance;
+  });
+
+  // ── Creation ────────────────────────────────────────────────────────────
+
+  it('should create', () => {
+    fixture.detectChanges();
+    expect(component).toBeTruthy();
+  });
+
+  // ── Init ────────────────────────────────────────────────────────────────
+
+  it('calls loadAll on init', () => {
+    serviceSpy.loadAll.and.resolveTo(undefined);
+    fixture.detectChanges();
+    expect(serviceSpy.loadAll).toHaveBeenCalledOnceWith();
+  });
+
+  // ── Loading State ────────────────────────────────────────────────────────
+
+  it('shows spinner while isLoading is true', () => {
+    (serviceSpy.isLoading as WritableSignal<boolean>).set(true);
+    fixture.detectChanges();                // re-render after signal change
+    expect(fixture.nativeElement.querySelector('app-spinner')).not.toBeNull();
+  });
+
+  // ── Loaded State ─────────────────────────────────────────────────────────
+
+  it('renders correct number of items when loaded', () => {
+    (serviceSpy.items as WritableSignal<{{ModelName}}[]>).set(
+      [build{{ModelName}}(), build{{ModelName}}(), build{{ModelName}}()]
+    );
+    fixture.detectChanges();
+    const rows = fixture.nativeElement.querySelectorAll('[data-testid="item-row"]');
+    expect(rows.length).toBe(3);
+  });
+
+  // ── Empty State ──────────────────────────────────────────────────────────
+
+  it('shows empty state when items list is empty', () => {
+    (serviceSpy.items as WritableSignal<{{ModelName}}[]>).set([]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="empty-state"]')).not.toBeNull();
+  });
+
+  // ── Error State ──────────────────────────────────────────────────────────
+
+  it('shows error message when error signal is set', () => {
+    (serviceSpy.error as WritableSignal<string | null>).set('Failed to load items');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-error-message')).not.toBeNull();
+  });
+
+  // ── Interaction ──────────────────────────────────────────────────────────
+
+  it('navigates to detail on item click', () => {
+    const item = build{{ModelName}}({ id: 'test-42' });
+    (serviceSpy.items as WritableSignal<{{ModelName}}[]>).set([item]);
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('[data-testid="item-row"]').click();
+
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/{{route}}', 'test-42']);
+  });
+});

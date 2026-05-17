@@ -1,0 +1,57 @@
+using {{Namespace}}.Domain.Common;
+
+namespace {{Namespace}}.Domain.Entities;
+
+public sealed class {{EntityName}} : Entity
+{
+    // --- Private fields (EF Core requires parameterless constructor or shadow props) ---
+    private readonly List<{{ChildEntity}}> _{{childEntities}} = [];
+
+    // --- Properties ---
+    public string Name { get; private set; } = default!;
+    // TODO: Add properties with private setters
+
+    // --- Navigation (read-only) ---
+    public IReadOnlyList<{{ChildEntity}}> {{ChildEntities}} => _{{childEntities}}.AsReadOnly();
+
+    // --- Private constructor (EF Core) ---
+    private {{EntityName}}() { }
+
+    // --- Factory method (enforce invariants) ---
+    public static {{EntityName}} Create(string name /* TODO: add params */)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        // TODO: Add other invariant checks
+
+        var entity = new {{EntityName}}
+        {
+            Name = name,
+            // TODO: Set properties
+        };
+
+        entity.RaiseDomainEvent(new {{EntityName}}CreatedEvent(entity.Id));
+        return entity;
+    }
+
+    // --- Behaviors (encapsulate business logic) ---
+    public void Update(string name /* TODO: add params */)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        // TODO: Validate business rules
+
+        Name = name;
+        // TODO: Update properties
+
+        RaiseDomainEvent(new {{EntityName}}UpdatedEvent(Id));
+    }
+
+    public void Add{{ChildEntity}}({{ChildEntity}} child)
+    {
+        // TODO: Enforce aggregate invariants
+        _{{childEntities}}.Add(child);
+    }
+}
+
+// --- Domain Events ---
+public sealed record {{EntityName}}CreatedEvent(Guid {{EntityName}}Id) : IDomainEvent;
+public sealed record {{EntityName}}UpdatedEvent(Guid {{EntityName}}Id) : IDomainEvent;

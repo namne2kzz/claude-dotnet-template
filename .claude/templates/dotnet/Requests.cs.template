@@ -1,0 +1,24 @@
+using {{Namespace}}.Application.{{Feature}}.Commands;
+
+namespace {{Namespace}}.WebApi.{{Feature}}.Requests;
+
+// Separate file for all WebApi request models for {{Feature}}.
+// Request records map HTTP body → Application commands.
+
+public sealed record Create{{Entity}}Request(
+    string Name
+    // TODO: Add fields
+)
+{
+    public Create{{Entity}}Command ToCommand() =>
+        new(Name /* TODO: map fields */);
+}
+
+public sealed record Update{{Entity}}Request(
+    string Name
+    // TODO: Add fields
+)
+{
+    public Update{{Entity}}Command ToCommand(Guid id) =>
+        new(id, Name /* TODO: map fields */);
+}

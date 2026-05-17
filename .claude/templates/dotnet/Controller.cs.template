@@ -1,0 +1,74 @@
+using {{Namespace}}.Application.{{Feature}}.Commands;
+using {{Namespace}}.Application.{{Feature}}.Queries;
+using {{Namespace}}.WebApi.{{Feature}}.Requests;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace {{Namespace}}.WebApi.{{Feature}};
+
+[ApiController]
+[Route("api/v1/[controller]")]
+[Authorize]
+public sealed class {{ControllerName}}Controller(ISender sender) : ControllerBase
+{
+    /// <summary>Get paginated list of {{resource}}</summary>
+    [HttpGet]
+    [ProducesResponseType<IReadOnlyList<{{Entity}}Dto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        var result = await sender.Send(new GetAll{{Entity}}sQuery(page, pageSize), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Get {{entity}} by id</summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<{{Entity}}Dto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct = default)
+    {
+        var result = await sender.Send(new Get{{Entity}}ByIdQuery(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : NotFound();
+    }
+
+    /// <summary>Create a new {{entity}}</summary>
+    [HttpPost]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create(
+        [FromBody] Create{{Entity}}Request request,
+        CancellationToken ct = default)
+    {
+        var result = await sender.Send(request.ToCommand(), ct);
+        if (!result.IsSuccess) return BadRequest(result.Error);
+        return CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value);
+    }
+
+    /// <summary>Update {{entity}}</summary>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromBody] Update{{Entity}}Request request,
+        CancellationToken ct = default)
+    {
+        var result = await sender.Send(request.ToCommand(id), ct);
+        if (!result.IsSuccess) return result.Error.Contains("not found") ? NotFound() : BadRequest(result.Error);
+        return NoContent();
+    }
+
+    /// <summary>Delete {{entity}}</summary>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct = default)
+    {
+        var result = await sender.Send(new Delete{{Entity}}Command(id), ct);
+        return result.IsSuccess ? NoContent() : NotFound();
+    }
+}

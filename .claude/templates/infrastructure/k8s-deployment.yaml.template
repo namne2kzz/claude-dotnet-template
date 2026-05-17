@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{app-name}}
+  namespace: {{namespace}}
+  labels:
+    app: {{app-name}}
+    version: "{{version}}"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: {{app-name}}
+  template:
+    metadata:
+      labels:
+        app: {{app-name}}
+        version: "{{version}}"
+    spec:
+      serviceAccountName: {{app-name}}-sa
+      containers:
+        - name: {{app-name}}
+          image: {{acr-name}}.azurecr.io/{{app-name}}:{{tag}}
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "{{environment}}"
+            - name: ConnectionStrings__Default
+              valueFrom:
+                secretKeyRef:
+                  name: {{app-name}}-secrets
+                  key: connection-string
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: {{app-name}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{app-name}}-svc
+  namespace: {{namespace}}
+spec:
+  selector:
+    app: {{app-name}}
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{app-name}}-hpa
+  namespace: {{namespace}}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{app-name}}
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

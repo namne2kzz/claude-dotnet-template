@@ -1,0 +1,53 @@
+using {{Namespace}}.Application.Common;
+using {{Namespace}}.Domain.Interfaces;
+using FluentValidation;
+using MediatR;
+
+namespace {{Namespace}}.Application.{{Feature}}.Commands;
+
+// --- Command ---
+public sealed record {{CommandName}}Command(
+    // TODO: Add command parameters
+    Guid Id,
+    string Name
+) : IRequest<Result<Guid>>;
+
+// --- Validator ---
+public sealed class {{CommandName}}CommandValidator : AbstractValidator<{{CommandName}}Command>
+{
+    public {{CommandName}}CommandValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.Name)
+            .NotEmpty()
+            .MaximumLength(200);
+        // TODO: Add more rules
+    }
+}
+
+// --- Handler ---
+public sealed class {{CommandName}}CommandHandler(
+    I{{Entity}}Repository repository,
+    IUnitOfWork unitOfWork
+    // TODO: Add more dependencies
+) : IRequestHandler<{{CommandName}}Command, Result<Guid>>
+{
+    public async Task<Result<Guid>> Handle(
+        {{CommandName}}Command command,
+        CancellationToken cancellationToken)
+    {
+        // 1. Load/validate dependencies
+        var existing = await repository.GetByIdAsync(command.Id, cancellationToken);
+        if (existing is null)
+            return Result.Failure<Guid>($"{{Entity}} with id '{command.Id}' not found.");
+
+        // 2. Execute domain logic
+        existing.Update(command.Name /* TODO: map params */);
+
+        // 3. Persist
+        repository.Update(existing);
+        await unitOfWork.CommitAsync(cancellationToken);
+
+        return Result.Success(existing.Id);
+    }
+}

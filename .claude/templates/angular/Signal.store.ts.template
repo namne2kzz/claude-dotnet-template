@@ -1,0 +1,95 @@
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { Router } from '@angular/router';
+
+// --- State shape ---
+interface {{FeatureName}}State {
+  items: {{ItemType}}[];
+  selectedId: string | null;
+  isLoading: boolean;
+  error: string | null;
+  filters: {{FilterType}};
+}
+
+const initialState: {{FeatureName}}State = {
+  items: [],
+  selectedId: null,
+  isLoading: false,
+  error: null,
+  filters: { /* TODO */ },
+};
+
+/**
+ * {{FeatureName}} Signal Store
+ * Manages all state for the {{feature-name}} feature.
+ */
+@Injectable({ providedIn: 'root' })
+export class {{FeatureName}}Store {
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
+
+  // --- Internal state ---
+  private readonly state = signal<{{FeatureName}}State>(initialState);
+
+  // --- Public selectors ---
+  readonly items = computed(() => this.state().items);
+  readonly selectedId = computed(() => this.state().selectedId);
+  readonly isLoading = computed(() => this.state().isLoading);
+  readonly error = computed(() => this.state().error);
+  readonly filters = computed(() => this.state().filters);
+
+  readonly selectedItem = computed(() =>
+    this.state().items.find(i => i.id === this.state().selectedId) ?? null
+  );
+  readonly filteredItems = computed(() => {
+    const { items, filters } = this.state();
+    // TODO: Apply filters
+    return items;
+  });
+  readonly totalCount = computed(() => this.state().items.length);
+
+  constructor() {
+    // Log state changes in development
+    effect(() => {
+      if (isDevMode()) {
+        console.log('[{{FeatureName}}Store]', this.state());
+      }
+    });
+  }
+
+  // --- Actions ---
+
+  async loadItems(): Promise<void> {
+    this.patchState({ isLoading: true, error: null });
+    try {
+      const items = await firstValueFrom(
+        this.http.get<{{ItemType}}[]>('/api/{{resource}}')
+      );
+      this.patchState({ items, isLoading: false });
+    } catch (err) {
+      this.patchState({ error: 'Failed to load items', isLoading: false });
+    }
+  }
+
+  selectItem(id: string): void {
+    this.patchState({ selectedId: id });
+  }
+
+  clearSelection(): void {
+    this.patchState({ selectedId: null });
+  }
+
+  updateFilter(partial: Partial<{{FilterType}}>): void {
+    this.patchState({ filters: { ...this.filters(), ...partial } });
+  }
+
+  reset(): void {
+    this.state.set(initialState);
+  }
+
+  // --- Private helpers ---
+  private patchState(partial: Partial<{{FeatureName}}State>): void {
+    this.state.update(s => ({ ...s, ...partial }));
+  }
+}
