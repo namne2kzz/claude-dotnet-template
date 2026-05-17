@@ -60,20 +60,20 @@ frontend/src/app/
 
 ---
 
-## After Every Code Generation
+## Automatic Workflow
 
-After generating any code, always ask:
+Khi nhận bất kỳ yêu cầu code nào, hỏi trước:
 
-> "Run post-gen review? (yes / no)"
+> "Use auto agent? (yes / no)"
 
-- **yes** → load `.claude/hooks/post-gen.md`, review against every checklist item, fix all failures inline, show final code only
-- **no** → skip
+- **yes** → đọc `.claude/.claude/agents/auto.md` và follow toàn bộ flow trong đó
+- **no** → respond bình thường, không attach gì thêm
 
 ---
 
 ## Skills Reference
 
-Detailed patterns and code templates in `.claude/skills/`:
+Detailed patterns and code templates in `.claude/.claude/skills/`:
 
 | Area | Skills |
 |------|--------|
@@ -81,6 +81,6 @@ Detailed patterns and code templates in `.claude/skills/`:
 | Frontend | `generate-angular` · `angular-signals` · `angular-rxjs` · `unit-testing-angular` |
 | Database | `efcore-sqlserver` · `efcore-postgresql` · `redis-cache` · `migrations` · `query-optimization` |
 
-Agents: `dotnet-coder` · `angular-coder` · `reviewer` · `architect` · `db-optimizer` · `security-auditor` · `build-error-resolver`
+Agents: `auto` · `dotnet-coder` · `angular-coder` · `reviewer` · `architect` · `db-optimizer` · `security-auditor` · `build-error-resolver`
 
 Workflows: `build-feature` · `fix-bug` · `code-review` · `deploy-to-azure` · `tdd` · `security-scan` · `health-check`

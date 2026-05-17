@@ -1,6 +1,6 @@
 # Skill: Angular Signals — Reactive State
 
-Master Angular Signals for reactive state management in Angular v17+.
+Master Angular Signals for reactive state management in Angular v20+.
 
 ## Usage
 ```
