@@ -5,92 +5,102 @@ Chỉ chạy khi user chọn "yes" ở câu hỏi "Use auto agent?".
 
 ---
 
-## Bước 1 — Detect Context
+## Bước 1 — Clarify
 
-Đọc toàn bộ prompt, classify theo keywords:
+Nếu prompt rõ ràng, đủ thông tin → tiếp tục ngay.
 
-| Context | Keywords |
-|---------|---------|
-| **Backend** | command, query, handler, controller, entity, aggregate, repository, domain, CQRS, MediatR, EF Core, migration, API, endpoint, C#, .NET, validator, service, event |
-| **Frontend** | component, service (Angular), signal, template, HTML, SCSS, spec, guard, interceptor, pipe, Angular, TypeScript, route, form |
-| **Database** | SQL, table, column, index, migration, schema, query, PostgreSQL, SQL Server, Redis, EF Core, LINQ, optimize |
-| **Testing** | test, spec, unit test, integration test, mock, fixture, xUnit, Jasmine, Testcontainers |
-
-Một prompt có thể match nhiều context — load tất cả skills relevant.
-
----
-
-## Bước 2 — Clarify nếu thiếu info
-
-Nếu prompt rõ ràng → skip, tiếp tục ngay.
-
-Nếu thiếu thông tin để generate đúng, hỏi từng câu một cho đến khi đủ:
+Nếu thiếu thông tin, hỏi từng câu một cho đến khi đủ để generate:
 
 ```
-Cần thêm thông tin để generate đúng:
-- [câu hỏi cụ thể về điều còn thiếu]
+Cần thêm thông tin:
+- [câu hỏi cụ thể]
 ```
 
-Ví dụ những thứ cần hỏi:
+Những thứ thường cần hỏi:
 - Entity/aggregate tên gì, fields nào?
-- Business rules / validation rules cụ thể?
-- Cần include tests không?
-- DB là SQL Server hay PostgreSQL?
-- Có liên quan đến entity/service nào đã có không?
-
-Tiếp tục hỏi cho đến khi đủ context để generate production-ready code.
+- Business rules / validation cụ thể?
+- DB đang dùng SQL Server hay PostgreSQL?
+- Có cần tests không? Unit hay integration?
+- Liên quan đến entity/service nào đã có chưa?
 
 ---
 
-## Bước 3 — Map sang Agent + Skills
+## Bước 2 — Detect & Map (additive — cộng dồn tất cả match)
 
-### Agent
-| Context detected | Agent |
-|-----------------|-------|
-| Backend only | `dotnet-coder` |
-| Frontend only | `angular-coder` |
-| Database only | `db-optimizer` |
-| Backend + Frontend | `dotnet-coder` + `angular-coder` |
-| Security concern | `security-auditor` |
-| Review request | `reviewer` |
-| Architecture/design | `architect` |
-| Build errors | `build-error-resolver` |
+Sau khi có đủ thông tin, đọc toàn bộ context (prompt gốc + câu trả lời từ Bước 1).
+Mỗi context match → cộng thêm agent + skills tương ứng vào list.
 
-### Skills — đọc file trước khi generate
-| Detected | Skill files cần đọc |
-|----------|-------------------|
-| Backend | `skills/backend/generate-dotnet.md` + `skills/backend/ddd-cqrs.md` |
-| Backend + tests | thêm `skills/backend/unit-testing.md` |
-| Integration tests | thêm `skills/backend/testcontainers.md` |
-| Frontend | `skills/frontend/generate-angular.md` + `skills/frontend/angular-signals.md` |
-| Frontend + tests | thêm `skills/frontend/unit-testing-angular.md` |
-| SQL Server | `skills/database/efcore-sqlserver.md` |
-| PostgreSQL | `skills/database/efcore-postgresql.md` |
-| Redis | `skills/database/redis-cache.md` |
-| Migration | `skills/database/migrations.md` |
-| Slow query | `skills/database/query-optimization.md` |
-| Observability | `skills/backend/opentelemetry.md` |
-| Resilience | `skills/backend/resilience-patterns.md` |
-| API versioning | `skills/backend/api-versioning.md` |
-| Snapshot test | `skills/backend/snapshot-testing.md` |
-| .NET Aspire | `skills/backend/aspire-orchestration.md` |
+| Context | Keywords để detect | Agent thêm vào | Skills thêm vào |
+|---------|-------------------|---------------|----------------|
+| **Backend general** | command, query, handler, controller, entity, aggregate, repository, domain, CQRS, MediatR, C#, .NET, service, validator, event, API, endpoint | `dotnet-coder` | `generate-dotnet` · `ddd-cqrs` |
+| **Frontend general** | component, signal, template, HTML, SCSS, guard, interceptor, pipe, Angular, TypeScript, route, form, standalone | `angular-coder` | `generate-angular` · `angular-signals` |
+| **EF Core / SQL Server** | EF Core, DbContext, SQL Server, MSSQL, entity config, fluent API | — | `efcore-sqlserver` |
+| **PostgreSQL** | PostgreSQL, Npgsql, jsonb, pg | — | `efcore-postgresql` |
+| **Redis** | Redis, cache, TTL, StackExchange | — | `redis-cache` |
+| **Migration** | migration, schema change, alter table, add column | — | `migrations` |
+| **Query optimization** | slow query, N+1, index, optimize, performance, LINQ | `db-optimizer` | `query-optimization` |
+| **Backend unit test** | unit test, xUnit, Moq, FluentAssertions, Bogus, mock | — | `unit-testing` |
+| **Frontend unit test** | spec, Jasmine, TestBed, jasmine.createSpyObj, httpMock | — | `unit-testing-angular` |
+| **Integration test** | integration test, Testcontainers, WebApplicationFactory, real DB | — | `testcontainers` |
+| **Snapshot test** | Verify, snapshot, approved file | — | `snapshot-testing` |
+| **Resilience** | retry, circuit breaker, Polly, timeout, hedging, resilience | — | `resilience-patterns` |
+| **Observability** | OTel, OpenTelemetry, trace, metric, Serilog, log, Application Insights | — | `opentelemetry` |
+| **API versioning** | versioning, v1, v2, deprecated, Asp.Versioning | — | `api-versioning` |
+| **.NET Aspire** | Aspire, AppHost, ServiceDefaults, orchestration | — | `aspire-orchestration` |
+| **Security** | security, vulnerability, OWASP, auth, JWT, injection, secret, CVE, audit | `security-auditor` | — |
+| **Code review** | review, violation, refactor, improve, clean up, feedback | `reviewer` | — |
+| **Architecture/design** | design, architecture, ADR, bounded context, aggregate boundary, pattern, diagram | `architect` | — |
+| **Build error** | error, compile, CS0246, TS2339, build fail, red squiggle, cannot find | `build-error-resolver` | — |
+| **RxJS / HTTP streams** | Observable, pipe, switchMap, takeUntil, RxJS, HTTP stream | — | `angular-rxjs` |
 
 ---
 
-## Bước 4 — Confirm (1 dòng, không chờ user)
+## Bước 3 — Review với user
+
+Show kết quả và hỏi user muốn điều chỉnh không:
 
 ```
-→ Detected: [Backend + Testing] | Agent: dotnet-coder | Skills: generate-dotnet · ddd-cqrs · unit-testing | Generating...
+Detected agents & skills:
+  Agents : [list]
+  Skills : [list]
+
+Muốn thêm hoặc bớt agent/skill nào không? (enter để tiếp tục)
 ```
 
----
-
-## Bước 5 — Generate
-
-Đọc từng skill file đã xác định ở Bước 3. Generate code theo đúng patterns.
+- User enter / confirm → giữ nguyên, tiếp tục
+- User muốn thêm → cộng vào list
+- User muốn bớt → loại khỏi list
 
 ---
 
-## Bước 6 — Auto post-gen (tự động, không hỏi)
+## Bước 4 — Generate
 
-Đọc `.claude/.claude/hooks/post-gen.md`. Review toàn bộ code vừa generate theo checklist. Fix tất cả issues inline. Show final corrected code only.
+Đọc từng skill file trong list. Generate code theo đúng patterns trong đó.
+
+---
+
+## Bước 5 — Auto post-gen (tự động, không hỏi)
+
+Đọc `.claude/.claude/hooks/post-gen.md`. Review toàn bộ code theo checklist. Fix tất cả issues inline. Show final corrected code only.
+
+---
+
+## Ví dụ
+
+**Prompt:** "Tạo CreateOrderCommand với unit tests"
+
+**Bước 1:** Hỏi thêm → "Dùng SQL Server hay PostgreSQL?" → User: "SQL Server"
+
+**Bước 2 detect** (dựa trên prompt + câu trả lời):
+- "command" → Backend general → `dotnet-coder` + `generate-dotnet` · `ddd-cqrs`
+- "unit tests" → Backend unit test → `unit-testing`
+- "SQL Server" → EF Core / SQL Server → `efcore-sqlserver`
+
+**Bước 3:**
+```
+Detected agents & skills:
+  Agents : dotnet-coder
+  Skills : generate-dotnet · ddd-cqrs · unit-testing · efcore-sqlserver
+
+Muốn thêm hoặc bớt agent/skill nào không? (enter để tiếp tục)
+```
