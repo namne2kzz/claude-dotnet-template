@@ -1,202 +1,74 @@
-# Architecture Analysis & Design Prompt Template
-
-## For Clean Architecture Validation
-
-Use this prompt when reviewing or designing .NET solutions:
+# Architecture & Design Prompt Templates
 
 ---
 
-### Prompt Template
+## Architecture Review / DDD Modeling
 
 ```
-I'm working on a [microservice/feature] in our .NET application with Clean Architecture.
+[architect] Review/design this feature:
 
-**Current Context:**
-- Domain: [Brief description of business domain]
-- Current Implementation: [Paste relevant code or describe structure]
-- Technologies: [EF Core version, database type, Azure services used]
+**Domain & Context:**
+[Mô tả business domain, bounded context]
 
-**Questions/Needs:**
-1. Is my architecture aligned with Clean Architecture principles?
-2. Are my DDD boundaries correct?
-3. How can I optimize this for [performance/scalability]?
-4. What security concerns should I address?
-
-**Constraints:**
-- [Performance requirements]
-- [Scale expectations]
-- [Team size/expertise]
-
-Please analyze and provide:
-- Architecture assessment against SOLID principles
-- Suggested improvements with rationale
-- Code examples for recommended patterns
-- Performance implications
-- Security considerations
-```
-
----
-
-## For DDD Modeling
-
-```
-I need help modeling this domain in DDD patterns:
-
-**Business Context:**
-[Describe the business process/domain]
-
-**Current Entities/Aggregates:**
-[List or show current structure]
+**Current implementation (nếu có):**
+[Paste code hoặc mô tả structure]
 
 **Questions:**
-1. What should be my aggregate roots?
-2. How should these bounded contexts communicate?
-3. Where should domain events be published?
-
-Please suggest:
-- Aggregate boundary definitions
-- Value objects vs Entities
-- Domain event structure
-- Anti-corruption layers (if needed)
-- Repository interfaces
-```
-
----
-
-## For Microservices Communication
-
-```
-I'm designing a microservice communication pattern:
-
-**Services Involved:**
-[Service A] <-> [Service B] <-> [Service C]
+1. [Clean Architecture violations? Layer deps đúng không?]
+2. [Aggregate boundaries hợp lý không?]
+3. [Domain events cần ở đâu?]
 
 **Constraints:**
-- Eventual consistency is acceptable for [specific operations]
-- Strong consistency required for [specific operations]
-- Azure Service Bus available
-
-**Current Approach:**
-[Describe current implementation or problem]
-
-Recommend:
-- Service-to-service communication pattern (REST, events, RPC)
-- Async patterns for resilience
-- Error handling & retry strategies
-- Distributed transaction approach (Saga pattern?)
-```
-
----
-
-## For Performance Optimization
-
-```
-Analyze this query performance issue:
-
-**Current Code:**
-[Paste EF Core query or database operation]
-
-**Problem:**
-[Describe performance issue - slow response time, high memory, etc.]
-
-**Context:**
-- Data volume: [rows/records]
-- Frequency: [how often called]
-- Acceptable latency: [milliseconds]
-- Database: [Azure SQL/Cosmos/PostgreSQL]
-
-Suggest:
-- Query optimization (Select, Include, AsNoTracking)
-- Database indexing strategy
-- Caching approach (Redis, distributed cache)
-- Architectural changes if needed
-- Performance testing approach
-```
-
----
-
-## For Security Review
-
-```
-Review this code for security vulnerabilities:
-
-**Component:**
-[API endpoint / Database query / Authentication logic]
-
-**Current Implementation:**
-[Paste code]
-
-**Threats:**
-- [List potential threats you're concerned about]
-
-Please check for:
-- OWASP Top 10 vulnerabilities
-- Authentication/Authorization flaws
-- SQL injection risks
-- Data protection issues
-- Azure security best practices violations
+- Scale: [expected load]
+- Team: [size/expertise]
 
 Provide:
-- Vulnerabilities found
-- Risk level (Critical/High/Medium)
-- Remediation code
-- Testing strategy to validate fix
+- Architecture assessment (SOLID, DDD correctness)
+- Suggested improvements với rationale
+- Code examples cho recommended patterns
+- Trade-offs và security implications
 ```
 
 ---
 
-## For Testing Strategy
+## Performance & Microservices Design
 
 ```
-Help me design tests for this business logic:
+[architect] Optimize/design communication pattern:
 
-**Requirement:**
-[Describe business rule/feature]
+**Performance issue (nếu có):**
+[Paste EF Core query / slow endpoint]
+- Current latency: [ms] | Target: [ms]
+- Data volume: [rows] | Frequency: [calls/min]
 
-**Current Implementation:**
-[Show entity, service, or business logic]
+**Microservices (nếu có):**
+Services: [A] <-> [B] <-> [C]
+- Eventual consistency OK for: [operations]
+- Strong consistency required for: [operations]
 
-**Current Test Coverage:**
-[Describe existing tests if any]
-
-Please provide:
-- Unit test examples (arrange-act-assert)
-- Test cases covering edge cases
-- Mock/fixture setup
-- Integration test strategy
-- Performance test approach
+Provide:
+- Query / index optimization với explanation
+- Caching strategy (Redis TTL, cache-aside vs write-through)
+- Service communication pattern (REST / events / Saga)
+- Async resilience (retry, circuit breaker via Polly)
 ```
 
 ---
 
-## For Code Review
+## Security Architecture Review
 
 ```
-Please review this code for architectural compliance:
+[security-auditor] Review for security vulnerabilities:
 
+**Component:** [API endpoint / Auth flow / DB query]
 **Code:**
-[Paste code block or file]
+[Paste code]
 
-**Context:**
-- Layer: [Domain/Application/Infrastructure/WebApi]
-- Purpose: [What this code does]
-- Performance-critical: [Yes/No]
+Check:
+- OWASP Top 10 (injection, broken auth, IDOR, misconfiguration)
+- Auth/authz: JWT validation, [Authorize] coverage, claims
+- Input validation: FluentValidation coverage
+- Secrets: hardcoded credentials, logging PII
 
-Check for:
-- SOLID principle compliance
-- DDD pattern correctness
-- Clean code practices
-- Performance issues
-- Security concerns
-- Test coverage expectations
-
-Rate:
-- Architecture alignment (1-5)
-- Code quality (1-5)
-- Performance readiness (1-5)
-- Security posture (1-5)
+Output: vulnerability list với severity (Critical/High/Medium) + remediation code
 ```
-
----
-
-Use these templates to get more focused, architectural responses from Claude.
